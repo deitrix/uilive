@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"slices"
 	"sync"
 	"time"
 )
@@ -43,6 +44,7 @@ type Writer struct {
 	tdone  chan bool
 
 	buf       bytes.Buffer
+	blit      []byte
 	mtx       *sync.Mutex
 	lineCount int
 }
@@ -99,6 +101,9 @@ func (w *Writer) Flush() error {
 	}
 	w.lineCount = lines
 	_, err := w.Out.Write(w.buf.Bytes())
+	// before resetting the buffer, save the bytes to the blit, just in case we need to re-render the
+	// last frame.
+	w.blit = slices.Clone(w.buf.Bytes())
 	w.buf.Reset()
 	return err
 }
@@ -157,7 +162,14 @@ func (b *bypass) Write(p []byte) (int, error) {
 
 	b.writer.clearLines()
 	b.writer.lineCount = 0
-	return b.writer.Out.Write(p)
+	n, err := b.writer.Out.Write(p)
+	if err != nil {
+		return n, err
+	}
+	if _, err := b.writer.Out.Write(b.writer.blit); err != nil {
+		return n, err
+	}
+	return 0, nil
 }
 
 // Newline creates an io.Writer which allows buffered output to be written to the underlying output. This enable writing

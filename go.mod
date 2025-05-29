@@ -1,3 +1,3 @@
 module github.com/gosuri/uilive
 
-go 1.10
+go 1.24
