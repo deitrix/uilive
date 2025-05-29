@@ -161,7 +161,6 @@ func (b *bypass) Write(p []byte) (int, error) {
 	defer b.writer.mtx.Unlock()
 
 	b.writer.clearLines()
-	b.writer.lineCount = 0
 	n, err := b.writer.Out.Write(p)
 	if err != nil {
 		return n, err
